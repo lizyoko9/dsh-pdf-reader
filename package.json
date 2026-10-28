@@ -1,0 +1,34 @@
+{
+  "name": "dsh-pdf-reader",
+  "version": "0.1.0",
+  "description": "Practical PDF reading tools for DeepSeek Harness: full-text search, page jump, resume and quote",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/reader.js",
+    "client.js",
+    "assets/pdf_search.py",
+    "cordis.patch.yml",
+    "README.md",
+    "icon.svg"
+  ],
+  "license": "MIT",
+  "keywords": ["deepseek-harness", "dsh", "dsh-plugin", "pdf", "reader"],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  }
+}
