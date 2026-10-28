@@ -3,6 +3,13 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react');
     const h = React.createElement;
+    let createPortal;
+    try {
+      const reactDom = require('react-dom');
+      if (typeof reactDom?.createPortal === 'function') createPortal = reactDom.createPortal;
+    } catch {
+      createPortal = undefined;
+    }
 
     const ACTION_ID = 'pdf-reader-tools';
     const NS = 'pdfTools';
@@ -39,6 +46,8 @@ window.__ModuleLoader__.load({
       '.pdf_tools_quote{position:fixed;z-index:1100;border:none;border-radius:6px;background:var(--dsw-alias-state-business-primary);color:#fff;box-shadow:0 4px 14px #00000035;cursor:pointer;font:inherit;font-size:11px;font-weight:600;padding:5px 9px;white-space:nowrap}',
       '.pdf_tools_quote:hover{filter:brightness(1.08)}',
       '.pdf_tools_toast{position:fixed;z-index:1200;left:50%;bottom:28px;transform:translateX(-50%);background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l2);border-radius:999px;color:var(--dsw-alias-label-primary);font:inherit;font-size:11px;padding:6px 12px;box-shadow:0 6px 20px #00000030;pointer-events:none}',
+      '.pdf_tools_overlay{position:fixed;inset:0;z-index:999;pointer-events:none}',
+      '.pdf_tools_overlay .pdf_tools_pop,.pdf_tools_overlay .pdf_tools_quote{pointer-events:auto}',
       '::highlight(pdf-tools-all){background-color:#ffc40066;color:inherit}',
       '::highlight(pdf-tools-current){background-color:#ff8c00a8;color:#1b1b1b}',
     ].join('\n');
@@ -632,19 +641,7 @@ window.__ModuleLoader__.load({
 
       if (!enabled) return null;
 
-      return h('div', { className: 'pdf_tools_root' },
-        h('button', {
-          ref: buttonRef,
-          type: 'button',
-          className: 'pdf_tools_btn',
-          title: t('title'),
-          'aria-label': t('title'),
-          'aria-expanded': open,
-          onClick: () => (open ? closeTools() : openTools()),
-        },
-          h(SearchIcon),
-          h('span', { className: 'pdf_tools_label' }, 'PDF')
-        ),
+      const overlays = [
         open && anchor !== undefined ? h('div', {
           ref: popRef,
           className: 'pdf_tools_pop',
@@ -720,7 +717,26 @@ window.__ModuleLoader__.load({
           onMouseDown: (event) => event.preventDefault(),
           onClick: copyQuote,
         }, t('copyQuote')) : null,
-        toast !== '' ? h('div', { className: 'pdf_tools_toast' }, toast) : null
+        toast !== '' ? h('div', { className: 'pdf_tools_toast' }, toast) : null,
+      ].filter(Boolean);
+
+      const overlay = h('div', { className: 'pdf_tools_overlay' }, ...overlays);
+      return h('div', { className: 'pdf_tools_root' },
+        h('button', {
+          ref: buttonRef,
+          type: 'button',
+          className: 'pdf_tools_btn',
+          title: t('title'),
+          'aria-label': t('title'),
+          'aria-expanded': open,
+          onClick: () => (open ? closeTools() : openTools()),
+        },
+          h(SearchIcon),
+          h('span', { className: 'pdf_tools_label' }, 'PDF')
+        ),
+        createPortal !== undefined && typeof document !== 'undefined'
+          ? createPortal(overlay, document.body)
+          : overlay
       );
     }
 
