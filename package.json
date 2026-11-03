@@ -1,6 +1,6 @@
 {
   "name": "dsh-pdf-reader",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Practical PDF reading for DeepSeek Harness: full-text search, annotations, AI translation/explanation and quotes",
   "type": "module",
   "main": "lib/index.js",

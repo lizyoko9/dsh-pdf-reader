@@ -80,6 +80,25 @@ window.__ModuleLoader__.load({
       '::highlight(pdf-note-blue){background-color:#64b5f68c;color:inherit}',
       '::highlight(pdf-note-pink){background-color:#f48fb18c;color:inherit}',
       '::highlight(pdf-note-active){background-color:#ff8c00b3;color:#1b1b1b}',
+      '.pdf_tools_noteLayer{position:fixed;inset:0;z-index:940;pointer-events:none;overflow:hidden}',
+      '.pdf_tools_noteRect{position:fixed;border-radius:2px;pointer-events:none}',
+      '.pdf_tools_noteRect[data-color=yellow]{background:#ffd54f80}',
+      '.pdf_tools_noteRect[data-color=green]{background:#81c78480}',
+      '.pdf_tools_noteRect[data-color=blue]{background:#64b5f680}',
+      '.pdf_tools_noteRect[data-color=pink]{background:#f48fb180}',
+      '.pdf_tools_noteRect[data-active=true]{background:#ff8c00b3}',
+      '.pdf_tools_aiBody[data-markdown=true]{white-space:normal}',
+      '.pdf_tools_md{display:flex;flex-direction:column;gap:6px;line-height:18px}',
+      '.pdf_tools_md p{margin:0}',
+      '.pdf_tools_md h1,.pdf_tools_md h2,.pdf_tools_md h3{margin:2px 0 0;font-size:13px;line-height:18px;font-weight:600}',
+      '.pdf_tools_md ul,.pdf_tools_md ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}',
+      '.pdf_tools_md li{margin:0;padding:0}',
+      '.pdf_tools_md code{border-radius:3px;background:var(--dsw-alias-markdown-inline-code);font-family:var(--ds-font-family-code,monospace);font-size:11px;padding:1px 4px}',
+      '.pdf_tools_md pre{border-radius:5px;background:var(--dsw-alias-markdown-code-block);margin:0;padding:7px 8px;overflow:auto}',
+      '.pdf_tools_md pre code{background:0 0;padding:0;font-size:11px;line-height:16px}',
+      '.pdf_tools_md blockquote{border-left:2px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);margin:0;padding:1px 0 1px 9px}',
+      '.pdf_tools_md a{color:var(--dsw-alias-link);text-decoration:underline}',
+      '.pdf_tools_md strong{font-weight:600}',
       '.pdf_tools_head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}',
       '.pdf_tools_title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.pdf_tools_close{width:22px;height:22px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:5px;justify-content:center;align-items:center;display:inline-flex;font-size:15px;line-height:1}',
@@ -435,6 +454,93 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function inlineMarkdown(text, prefix) {
+      const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g;
+      const nodes = [];
+      let last = 0;
+      let match;
+      let index = 0;
+      while ((match = pattern.exec(text)) !== null) {
+        if (match.index > last) nodes.push(text.slice(last, match.index));
+        const token = match[0];
+        const key = prefix + '-' + index++;
+        if (token.startsWith('**')) nodes.push(h('strong', { key }, token.slice(2, -2)));
+        else if (token.startsWith('`')) nodes.push(h('code', { key }, token.slice(1, -1)));
+        else if (token.startsWith('[')) {
+          const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
+          if (link === null) nodes.push(token);
+          else nodes.push(h('a', { key, href: link[2], target: '_blank', rel: 'noreferrer' }, link[1]));
+        } else nodes.push(h('em', { key }, token.slice(1, -1)));
+        last = match.index + token.length;
+      }
+      if (last < text.length) nodes.push(text.slice(last));
+      return nodes;
+    }
+
+    function MarkdownText(props) {
+      const lines = String(props.text ?? '').replace(/\r\n/g, '\n').split('\n');
+      const blocks = [];
+      let index = 0;
+      let key = 0;
+      const blockStart = /^(#{1,3}\s|```|\s*[-*+]\s|\s*\d+\.\s|\s*>\s?)/;
+      while (index < lines.length) {
+        const line = lines[index];
+        if (line.trim() === '') { index += 1; continue; }
+        if (line.trim().startsWith('```')) {
+          const code = [];
+          index += 1;
+          while (index < lines.length && !lines[index].trim().startsWith('```')) {
+            code.push(lines[index]);
+            index += 1;
+          }
+          if (index < lines.length) index += 1;
+          blocks.push(h('pre', { key: 'md-' + key++ }, h('code', null, code.join('\n'))));
+          continue;
+        }
+        const heading = /^(#{1,3})\s+(.*)$/.exec(line);
+        if (heading !== null) {
+          blocks.push(h('h' + heading[1].length, { key: 'md-' + key++ }, ...inlineMarkdown(heading[2], 'h' + key)));
+          index += 1;
+          continue;
+        }
+        if (/^\s*[-*+]\s+/.test(line)) {
+          const items = [];
+          while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
+            items.push(h('li', { key: 'li-' + key++ }, ...inlineMarkdown(lines[index].replace(/^\s*[-*+]\s+/, ''), 'li' + key)));
+            index += 1;
+          }
+          blocks.push(h('ul', { key: 'md-' + key++ }, ...items));
+          continue;
+        }
+        if (/^\s*\d+\.\s+/.test(line)) {
+          const items = [];
+          while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) {
+            items.push(h('li', { key: 'li-' + key++ }, ...inlineMarkdown(lines[index].replace(/^\s*\d+\.\s+/, ''), 'li' + key)));
+            index += 1;
+          }
+          blocks.push(h('ol', { key: 'md-' + key++ }, ...items));
+          continue;
+        }
+        if (/^\s*>\s?/.test(line)) {
+          const quote = [];
+          while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+            quote.push(lines[index].replace(/^\s*>\s?/, ''));
+            index += 1;
+          }
+          blocks.push(h('blockquote', { key: 'md-' + key++ }, ...inlineMarkdown(quote.join(' '), 'q' + key)));
+          continue;
+        }
+        const paragraph = [line];
+        index += 1;
+        while (index < lines.length && lines[index].trim() !== '' && !blockStart.test(lines[index])) {
+          paragraph.push(lines[index]);
+          index += 1;
+        }
+        blocks.push(h('p', { key: 'md-' + key++ }, ...inlineMarkdown(paragraph.join(' '), 'p' + key)));
+      }
+      return h('div', { className: 'pdf_tools_md' }, ...blocks);
+    }
+
     function rangeFromOffsets(pageElement, start, end) {
       const { nodes } = collectTextNodes(pageElement);
       if (nodes.length === 0) return undefined;
@@ -469,10 +575,45 @@ window.__ModuleLoader__.load({
       } catch {
         // ignore
       }
+      if (typeof document !== 'undefined') document.querySelectorAll('.pdf_tools_noteLayer').forEach((element) => element.remove());
+    }
+
+    function paintNoteOverlay(root, notes, activeId) {
+      if (typeof document === 'undefined') return 0;
+      document.querySelectorAll('.pdf_tools_noteLayer').forEach((element) => element.remove());
+      const layer = document.createElement('div');
+      layer.className = 'pdf_tools_noteLayer';
+      let painted = 0;
+      for (const note of notes) {
+        const pageElement = findPage(root, note.page);
+        if (pageElement === undefined) continue;
+        const range = rangeFromOffsets(pageElement, note.start, note.end);
+        if (range === undefined) continue;
+        const color = note.color === 'green' || note.color === 'blue' || note.color === 'pink' ? note.color : 'yellow';
+        let rects;
+        try { rects = Array.from(range.getClientRects()); } catch { continue; }
+        for (const rect of rects) {
+          if (rect.width < 1 || rect.height < 1) continue;
+          const marker = document.createElement('div');
+          marker.className = 'pdf_tools_noteRect';
+          marker.dataset.color = color;
+          if (note.id === activeId) marker.dataset.active = 'true';
+          marker.style.left = rect.left + 'px';
+          marker.style.top = rect.top + 'px';
+          marker.style.width = rect.width + 'px';
+          marker.style.height = rect.height + 'px';
+          layer.appendChild(marker);
+          painted += 1;
+          if (painted > 600) break;
+        }
+        if (painted > 600) break;
+      }
+      if (layer.childElementCount > 0) document.body.appendChild(layer);
+      return painted;
     }
 
     function paintNotes(root, notes, activeId) {
-      if (root === undefined || typeof CSS === 'undefined' || CSS.highlights === undefined || typeof Highlight === 'undefined') return 0;
+      if (root === undefined) return 0;
       clearNoteHighlights();
       const groups = { yellow: [], green: [], blue: [], pink: [] };
       let activeRange;
@@ -488,14 +629,17 @@ window.__ModuleLoader__.load({
         painted += 1;
       }
       try {
-        for (const [color, ranges] of Object.entries(groups)) {
-          if (ranges.length > 0) CSS.highlights.set('pdf-note-' + color, new Highlight(...ranges));
+        if (typeof CSS !== 'undefined' && CSS.highlights !== undefined && typeof Highlight !== 'undefined') {
+          for (const [color, ranges] of Object.entries(groups)) {
+            if (ranges.length > 0) CSS.highlights.set('pdf-note-' + color, new Highlight(...ranges));
+          }
+          if (activeRange !== undefined) CSS.highlights.set('pdf-note-active', new Highlight(activeRange));
         }
-        if (activeRange !== undefined) CSS.highlights.set('pdf-note-active', new Highlight(activeRange));
       } catch {
-        return 0;
+        // CSS highlights are best-effort; the DOM overlay below is the visible fallback.
       }
-      return painted;
+      const overlay = paintNoteOverlay(root, notes, activeId);
+      return Math.max(painted, overlay);
     }
 
     function offsetWithinPage(pageElement, node, offset) {
@@ -627,6 +771,11 @@ window.__ModuleLoader__.load({
       const restoredRef = React.useRef(false);
       const saveTimer = React.useRef(undefined);
       const searchSeq = React.useRef(0);
+      const notesRef = React.useRef(notes);
+      notesRef.current = notes;
+      const activeNoteRef = React.useRef(activeNote);
+      activeNoteRef.current = activeNote;
+      const repaintNotes = React.useRef(() => {});
 
       const openTools = React.useCallback(() => {
         const rect = buttonRef.current?.getBoundingClientRect();
@@ -680,6 +829,7 @@ window.__ModuleLoader__.load({
               if (stopped || boundPort === undefined) return;
               const next = currentPage(root, boundPort);
               setPage(next);
+              repaintNotes.current();
               if (saveTimer.current !== undefined) clearTimeout(saveTimer.current);
               saveTimer.current = setTimeout(() => writeStore(absolutePath, next), 350);
             };
@@ -725,8 +875,9 @@ window.__ModuleLoader__.load({
         const paint = () => {
           if (stopped) return;
           const root = rootRef.current ?? previewFor(buttonRef.current);
-          if (root !== undefined) paintNotes(root, notes, activeNote);
+          if (root !== undefined) paintNotes(root, notesRef.current, activeNoteRef.current);
         };
+        repaintNotes.current = paint;
         const attach = () => {
           if (stopped) return;
           const root = rootRef.current ?? previewFor(buttonRef.current);
@@ -751,6 +902,7 @@ window.__ModuleLoader__.load({
           clearInterval(timer);
           clearTimeout(debounce);
           observer?.disconnect();
+          repaintNotes.current = () => {};
           clearNoteHighlights();
         };
       }, [enabled, notes, activeNote]);
@@ -1253,10 +1405,10 @@ window.__ModuleLoader__.load({
             h('span', { className: 'pdf_tools_aiTitle' }, ai.action === 'translate' ? t('ai.translateTitle') : t('ai.explainTitle')),
             h('button', { type: 'button', className: 'pdf_tools_close', title: t('close'), 'aria-label': t('close'), onClick: () => setAI(undefined) }, '×')
           ),
-          h('div', { className: 'pdf_tools_aiBody', 'data-error': ai.error !== undefined },
+          h('div', { className: 'pdf_tools_aiBody', 'data-error': ai.error !== undefined, 'data-markdown': ai.result !== undefined },
             ai.loading
               ? h('span', { className: 'pdf_tools_loading' }, h('span', { className: 'pdf_tools_spinner' }), t('ai.loading'))
-              : ai.error !== undefined ? ai.error : ai.result
+              : ai.error !== undefined ? ai.error : h(MarkdownText, { text: ai.result })
           ),
           h('div', { className: 'pdf_tools_aiHint' }, t('ai.hint')),
           h('div', { className: 'pdf_tools_aiFoot' },

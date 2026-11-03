@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 — 2026-11-03
+
+- Render AI Translate/Explain replies as Markdown (headings, lists, bold, inline code, links, blockquotes, code fences) instead of showing raw Markdown.
+- Add a DOM overlay for annotation highlights in addition to CSS Custom Highlights. This makes saved annotations visible in the PDF itself even when the Custom Highlight pseudo-element does not paint.
+- Repaint annotation overlays on PDF scroll and page re-render.
+
 ## 0.2.3 — 2026-11-03
 
 - Fix index injection: listen on the web server's context (`web.ctx`), so `window.__PDF_READER__` reaches the client. This is why the panel previously said “AI backend not connected” and annotations never loaded.
