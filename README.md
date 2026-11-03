@@ -10,7 +10,7 @@ The built-in DSH PDF.js preview stays responsible for rendering and text selecti
 - **Page jump** and **resume** (last page per file).
 - **Annotations**: select text, pick yellow / green / blue / pink, add an optional note, and keep a list per PDF. Annotations are stored as a sidecar JSON in `~/.dsh/pdf-reader/notes/<sha1>.json`; export the list as Markdown.
 - **AI translation / explanation**: select text and choose Translate or Explain. The host calls DSH's configured default model through `ctx.llm`; no extra API key or settings. The selected text is sent to that model.
-- **Quote selection**: copy a Markdown quote with the file name and page number.
+- **Quote selection**: insert a Markdown quote with the file name and page number into the chat composer; if the composer is unavailable, copy it to the clipboard.
 - Keyboard shortcut `Cmd/Ctrl+F` opens the PDF search when the PDF pane is active.
 
 ## Install

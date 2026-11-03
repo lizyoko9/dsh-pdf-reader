@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 — 2026-11-03
+
+- Fix index injection: listen on the web server's context (`web.ctx`), so `window.__PDF_READER__` reaches the client. This is why the panel previously said “AI backend not connected” and annotations never loaded.
+- Quote selection now inserts a Markdown quote into the chat composer; if no composer is found it falls back to the clipboard.
+- Update the quote copy in the README.
+
 ## 0.2.2 — 2026-11-03
 
 - Fix the bundle patch format: DSH bundle patches must use `- insert:`; the previous bare row was silently ignored, so the host and client halves never loaded.

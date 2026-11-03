@@ -528,6 +528,42 @@ window.__ModuleLoader__.load({
       return anchor.end > anchor.start ? anchor : anchor;
     }
 
+    function composerInput() {
+      const root = document.querySelector('[data-slot="conversation.composer"]') ?? document;
+      const candidates = [...root.querySelectorAll('textarea, input, [contenteditable="true"], [role="textbox"]')];
+      return candidates.find((element) => element.getClientRects().length > 0) ?? candidates[0];
+    }
+
+    function insertIntoComposer(text) {
+      if (typeof document === 'undefined') return false;
+      const input = composerInput();
+      if (input === undefined) return false;
+      try {
+        input.focus();
+        if (input instanceof HTMLTextAreaElement || input instanceof HTMLInputElement) {
+          const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+          const next = input.value === '' ? text : input.value + (input.value.endsWith('\n') ? '\n' : '\n\n') + text;
+          if (setter !== undefined) setter.call(input, next);
+          else input.value = next;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(input);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          const prefix = (input.innerText ?? '').trim() === '' ? '' : '\n\n';
+          document.execCommand('insertText', false, prefix + text);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     async function copyText(value) {
       try {
         await navigator.clipboard.writeText(value);
@@ -910,9 +946,13 @@ window.__ModuleLoader__.load({
         if (quote === undefined) return;
         const body = quote.text.split(/\r?\n/).map((line) => '> ' + line).join('\n');
         const label = quote.page > 0 ? `p. ${quote.page}` : 'PDF';
-        const markdown = `${body}\n>\n> — ${basename(absolutePath)}, ${label}`;
-        await copyText(markdown);
-        setToast(t('copied'));
+        const markdown = `${body}\n>\n> — ${basename(absolutePath)}, ${label}\n\n`;
+        if (insertIntoComposer(markdown)) {
+          setToast(t('quote.inserted'));
+        } else {
+          await copyText(markdown);
+          setToast(t('copied'));
+        }
         setQuote(undefined);
       };
 
