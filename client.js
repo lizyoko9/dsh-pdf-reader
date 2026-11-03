@@ -668,9 +668,15 @@ window.__ModuleLoader__.load({
         setActiveNote(undefined);
         if (config === undefined) return undefined;
         loadNotes(config, absolutePath).then((list) => {
-          if (!cancelled) setNotes(list);
+          if (!cancelled) {
+            setNotes((current) => {
+              const merged = new Map(list.map((note) => [note.id, note]));
+              for (const note of current) merged.set(note.id, note);
+              return [...merged.values()];
+            });
+          }
         }).catch(() => {
-          if (!cancelled) setNotes([]);
+          // Keep local notes when the sidecar backend is temporarily unavailable.
         });
         return () => { cancelled = true; };
       }, [enabled, absolutePath, config]);

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-11-03
+
+- Merge annotations already added in the panel with the sidecar list when the asynchronous load returns, so a quick highlight is not lost.
+
 ## 0.2.0 — 2026-11-03
 
 - Add selection annotations: four highlight colors, optional note editor, annotation list, page navigation and Markdown export.
