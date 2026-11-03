@@ -1,2 +1,3 @@
-- id: pdf-reader
-  name: dsh-pdf-reader
+- insert:
+    - id: pdf-reader
+      name: 'dsh-pdf-reader'

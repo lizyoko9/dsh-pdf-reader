@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-11-03
+
+- Fix the bundle patch format: DSH bundle patches must use `- insert:`; the previous bare row was silently ignored, so the host and client halves never loaded.
+- Mount the host route from the already-mounted `webServer` when possible, falling back to `ctx.inject` only when needed.
+- Minimal-profile verification now returns 401 (route mounted) instead of 404 and includes `dsh-pdf-reader` in the client graph.
+
 ## 0.2.1 — 2026-11-03
 
 - Merge annotations already added in the panel with the sidecar list when the asynchronous load returns, so a quick highlight is not lost.
