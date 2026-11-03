@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-11-03
+
+- Add selection annotations: four highlight colors, optional note editor, annotation list, page navigation and Markdown export.
+- Persist annotations per PDF in `~/.dsh/pdf-reader/notes/<sha1>.json` through a token-protected host route.
+- Add AI Translate and AI Explain for selections. The host uses DSH's configured default model through `ctx.llm` and streams the answer back as a panel.
+- Replace the single quote button with a selection toolbar (Annotate / Translate / Explain / Quote).
+- Keep full-text search, page jump and resume.
+
 ## 0.1.1 — 2026-10-28
 
 - Portal the PDF tools popover and quote button to `document.body` so the header cannot clip them.

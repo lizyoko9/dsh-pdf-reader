@@ -4,10 +4,13 @@ Practical PDF tools for the built-in DeepSeek Harness PDF preview. It does **not
 
 ## Features
 
-- **Full-text search** across the whole PDF, with previous/next navigation and current-match highlighting. Uses a small host route backed by `pypdf`; falls back to searching only rendered pages when the backend is unavailable.
-- **Page jump** with current page / total pages.
-- **Resume**: remembers the last page per file in `localStorage`.
-- **Quote selection**: select text in the PDF, click **引用选中**, and get a Markdown quote with the file name and page number on the clipboard.
+The built-in DSH PDF.js preview stays responsible for rendering and text selection. This plugin adds a research-reading layer on top:
+
+- **Full-text search** across the whole PDF, with previous/next navigation and current-match highlighting.
+- **Page jump** and **resume** (last page per file).
+- **Annotations**: select text, pick yellow / green / blue / pink, add an optional note, and keep a list per PDF. Annotations are stored as a sidecar JSON in `~/.dsh/pdf-reader/notes/<sha1>.json`; export the list as Markdown.
+- **AI translation / explanation**: select text and choose Translate or Explain. The host calls DSH's configured default model through `ctx.llm`; no extra API key or settings. The selected text is sent to that model.
+- **Quote selection**: copy a Markdown quote with the file name and page number.
 - Keyboard shortcut `Cmd/Ctrl+F` opens the PDF search when the PDF pane is active.
 
 ## Install
@@ -33,7 +36,15 @@ For the local desktop profile, the equivalent is a `link:` dependency plus the b
 - The action is attached only to `.pdf` files. Word/PowerPoint converted to PDF via the Office preview is not handled yet.
 - The backend is token-protected and injected into the HTTP index; the Desktop app loads the UI over HTTP.
 
+## AI model
+
+Translate/Explain uses the current DSH default model (`agentDefaultModel.currentSelection()`), falling back to the first registered provider model. If the model is unavailable, the AI panel reports the error; the reading and annotation features still work.
+
+The host sends only the selected text (truncated to 6000 characters) plus the file name and page number. It does not upload the whole PDF.
+
 ## Design
 
+
 - Host: `GET /pdf-reader/search?path=<absolute pdf>&q=<query>`; token in `x-pdf-reader-token`; `pypdf` extracts text and returns `{pages, matches, truncated}`.
-- Client: registers `sidebar.right.tab.document.actions` for PDFs; reads PDF.js text layers through `[data-pdf-text]` / `[data-pdf-page]`; uses `CSS.highlights` when available.
+- Host: `GET/POST /pdf-reader/notes?path=<absolute pdf>` reads/writes the sidecar JSON; `POST /pdf-reader/ai` resolves the default model and streams from `ctx.llm`.
+- Client: registers `sidebar.right.tab.document.actions` for PDFs; reads PDF.js text layers through `[data-pdf-text]` / `[data-pdf-page]`; uses `CSS.highlights` for search and annotation highlights, plus a floating selection toolbar and AI panel.
